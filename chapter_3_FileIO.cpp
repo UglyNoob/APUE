@@ -11,7 +11,7 @@ inline void write_string_literal(int fd, const char (&str)[N]) {
 }
 
 
-int main(int argc, char **argv) {
+int main(int, char **argv) {
 	/*
 	 * STDOUT_FILENO STDERR_FILENO STDIN_FILENO: unistd.h
 	 */
@@ -29,16 +29,37 @@ int main(int argc, char **argv) {
 	 * O_NOFOLLOW(path must not refer to a symbolic link)
 	 * O_NONBLOCK O_SYNC O_DSYNC O_RSYNC O_TRUNC O_TTY_INIT
 	 */
-	int fd = open("test.txt", O_WRONLY | O_CREAT | O_EXCL, 0600);
+	int fd = open("test.txt", O_WRONLY | O_CREAT | O_EXCL, 0666);
 	if(fd == -1) {
 		perror(argv[0]);
 		return 1;
 	}
 
-	off_t offset = lseek(fd, 20, SEEK_SET); //whence can be SEEK_SET SEEK_CUR SEEK_END
+	off_t offset = lseek(fd, 20, SEEK_SET); // whence can be SEEK_SET SEEK_CUR SEEK_END
 	write_string_literal(fd, "hello, world\n");
 	printf("%ld bytes wrote to test.txt\n", lseek(fd, 0, SEEK_CUR) - offset);
+	// same as: close(STDOUT_FILENO); int dup2licated_fd = fcntl(fd, F_DUPFD, STDOUT_FILENO);
+	int dup2licated_fd = dup2(fd, STDOUT_FILENO); // Close STDOUT_FILENO and duplicate fd to STDOUT_FILENO.
+	if(dup2licated_fd != STDOUT_FILENO) {
+		perror(argv[0]);
+	}
+	printf("This is written through printf.\n");
 
+	/*
+	 * dup dup2: unistd.h
+	 */
+	// same as: int duplicated_fd = fcntl(fd, F_DUPFD, 0);
+	int duplicated_fd = dup(fd); // dup(fd) guaranteed that the new file descriptor returned is lowest-numbered and available.
+	write_string_literal(duplicated_fd, "This is written through duplicated_fd.\n");
+
+	/*
+	 * fcntl: fcntl.h
+	 * int fcntl(int fd, int cmd [, int arg])
+	 * F_DUPFD F_DUPFD_CLOEXEC F_GETFD F_SETFD F_GETFL F_SETFL F_SETOWN F_GETOWN
+	 */
+
+	close(duplicated_fd);
+	close(dup2licated_fd);
 	close(fd);
 	return 0;
 }
