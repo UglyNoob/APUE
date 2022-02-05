@@ -10,6 +10,14 @@ inline void write_string_literal(int fd, const char (&str)[N]) {
 	write(fd, str, N - 1);
 }
 
+int my_dup2(int fd, int fd2) {
+	close(fd2);
+	char buffer[20];
+	sprintf(buffer, "/dev/fd/%d", fd);
+	fd2 = open(buffer, 0);
+	return fd2;
+}
+
 
 int main(int, char **argv) {
 	/*
@@ -28,6 +36,9 @@ int main(int, char **argv) {
 	 * O_EXCL(often is with O_CREAT, generates an error if the file already exists.)
 	 * O_NOFOLLOW(path must not refer to a symbolic link)
 	 * O_NONBLOCK O_SYNC O_DSYNC O_RSYNC O_TRUNC O_TTY_INIT
+	 */
+	/*
+	 * When O_APPEND set within flags, lseek, pwrite, pread will lose effect.
 	 */
 	int fd = open("test.txt", O_WRONLY | O_CREAT | O_EXCL, 0666);
 	if(fd == -1) {
@@ -56,6 +67,11 @@ int main(int, char **argv) {
 	 * fcntl: fcntl.h
 	 * int fcntl(int fd, int cmd [, int arg])
 	 * F_DUPFD F_DUPFD_CLOEXEC F_GETFD F_SETFD F_GETFL F_SETFL F_SETOWN F_GETOWN
+	 */
+
+	/*
+	 * ioctl: sys/ioctl.h
+	 * int ioctl(int fd, int request [, T *pointer])
 	 */
 
 	close(duplicated_fd);
